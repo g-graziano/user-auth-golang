@@ -14,5 +14,5 @@ func init() {
 func Run() {
 	dep := buildDependency()
 
-	_http.Router(dep.User)
+	_http.Router(dep.User, dep.Token)
 }

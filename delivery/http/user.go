@@ -6,52 +6,78 @@ import (
 	"github.com/g-graziano/userland/helper"
 	"github.com/g-graziano/userland/models"
 	"github.com/g-graziano/userland/service/user"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	json "github.com/json-iterator/go"
 )
 
 func HandleUserRegister(user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var newUser *models.User
+		var newUser *models.RegisterRequest
 		if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			helper.Response(w, helper.Message(false, "Invalid Request"))
+			helper.Response(w, helper.Message(false, err.Error()))
 			return
 		}
 
-		registeredUser, err := user.Register(newUser)
+		err := user.Register(newUser)
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusAccepted)
+			helper.Response(w, helper.Message(false, err.Error()))
+
+			return
 		}
 
-		res, err := json.ConfigFastest.Marshal(registeredUser)
-		if err != nil {
-			panic(err)
-		}
+		w.WriteHeader(http.StatusAccepted)
+		helper.Response(w, helper.Message(true, "Register Success!"))
 
-		w.Write(res)
+		return
 	}
 }
 
 func HandleEmailVerification(user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+		xid := chi.URLParam(r, "xid")
 
-		user.VerifyEmail(&models.User{XID: params["xid"]})
+		err := user.VerifyEmail(&models.User{XID: xid})
+		if err != nil {
+			w.WriteHeader(http.StatusAccepted)
+			helper.Response(w, helper.Message(false, err.Error()))
+
+			return
+		}
 
 		w.WriteHeader(http.StatusAccepted)
 		helper.Response(w, helper.Message(true, "Email Verification Success!"))
+
+		return
 	}
 }
 
 func HandleRequestEmailVerification(user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
+		var input *models.VerificationRequest
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
 
-		user.SendEmailValidation(&models.User{XID: params["xid"]})
+		if input.Type == "email" {
+			err := user.ResendEmailValidation(&models.User{Email: input.Recipient})
+
+			if err != nil {
+				w.WriteHeader(http.StatusAccepted)
+				helper.Response(w, helper.Message(false, err.Error()))
+
+				return
+			}
+
+		}
 
 		w.WriteHeader(http.StatusAccepted)
 		helper.Response(w, helper.Message(true, "Request Email Verification Success!"))
+
+		return
 	}
 }
 
@@ -60,18 +86,22 @@ func HandleLogin(user user.User) http.HandlerFunc {
 		var loginUser *models.User
 		if err := json.NewDecoder(r.Body).Decode(&loginUser); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			helper.Response(w, helper.Message(false, "Invalid Request"))
+			helper.Response(w, helper.Message(false, err.Error()))
 			return
 		}
 
 		login, err := user.Login(loginUser)
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
 		}
 
 		bs, err := json.ConfigFastest.Marshal(login)
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
 		}
 
 		w.Write(bs)
@@ -95,23 +125,47 @@ func HandleLogout(user user.User) http.HandlerFunc {
 	}
 }
 
-func HandleSearchUserByEmail(user user.User) http.HandlerFunc {
+func HandleForgotPassword(user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-
-		xid := r.Header.Get("xid")
-
-		foundUser, err := user.SearchUserByEmail(xid, &models.User{Email: params["email"]})
-		if err != nil {
-			panic(err)
+		var forgotUser *models.User
+		if err := json.NewDecoder(r.Body).Decode(&forgotUser); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
 		}
 
-		bs, err := json.ConfigFastest.Marshal(foundUser)
+		err := user.ForgotPassword(forgotUser)
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
 		}
 
-		w.Write(bs)
+		w.WriteHeader(http.StatusAccepted)
+		helper.Response(w, helper.Message(true, "Request Forgot Password Success!"))
+
+		return
+	}
+}
+
+func HandleResetPassword(user user.User) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var resetPass *models.ResetPass
+		if err := json.NewDecoder(r.Body).Decode(&resetPass); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
+
+		err := user.ResetPassword(resetPass)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+		helper.Response(w, helper.Message(true, "Reset Password Success!"))
 
 		return
 	}
@@ -123,15 +177,127 @@ func HandleGetUserProfile(user user.User) http.HandlerFunc {
 
 		profile, err := user.GetUserProfile(&models.User{XID: xid})
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
 		}
 
 		bs, err := json.ConfigFastest.Marshal(profile)
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
 		}
 
 		w.Write(bs)
+
+		return
+	}
+}
+
+func HandleGetUserEmail(user user.User) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		xid := r.Header.Get("xid")
+
+		email, err := user.GetUserEmail(&models.User{XID: xid})
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
+
+		bs, err := json.ConfigFastest.Marshal(email)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
+
+		w.Write(bs)
+
+		return
+	}
+}
+
+func HandleUpdateUserProfile(user user.User) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		xid := r.Header.Get("xid")
+
+		var update *models.User
+		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
+
+		update.XID = xid
+
+		err := user.UpdateUserProfile(update)
+		if err != nil {
+			w.WriteHeader(http.StatusAccepted)
+			helper.Response(w, helper.Message(false, "Update failed!"))
+
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+		helper.Response(w, helper.Message(true, "Update Success!"))
+
+		return
+	}
+}
+
+func HandleUpdatePassword(user user.User) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		xid := r.Header.Get("xid")
+
+		var update *models.ChangePassword
+		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
+
+		update.XID = xid
+
+		err := user.UpdateUserPassword(update)
+		if err != nil {
+			w.WriteHeader(http.StatusAccepted)
+			helper.Response(w, helper.Message(false, err.Error()))
+
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+		helper.Response(w, helper.Message(true, "Update Success!"))
+
+		return
+	}
+}
+
+func HandleSetProfilePicture(user user.User) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		xid := r.Header.Get("xid")
+
+		var update *models.ChangePassword
+		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.Message(false, err.Error()))
+			return
+		}
+
+		update.XID = xid
+
+		err := user.UpdateUserPassword(update)
+		if err != nil {
+			w.WriteHeader(http.StatusAccepted)
+			helper.Response(w, helper.Message(false, err.Error()))
+
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+		helper.Response(w, helper.Message(true, "Update Success!"))
 
 		return
 	}

@@ -6,11 +6,13 @@ import (
 
 	"github.com/g-graziano/userland/repository/postgres"
 	"github.com/g-graziano/userland/repository/redis"
+	"github.com/g-graziano/userland/service/token"
 	"github.com/g-graziano/userland/service/user"
 )
 
 type Dependency struct {
-	User user.User
+	User  user.User
+	Token token.Token
 	// Point        point.Point
 	// PointHistory pointHistory.PointHistory
 }
@@ -26,6 +28,8 @@ func buildDependency() Dependency {
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbHost, dbPort, dbName)
 	pg := postgres.New(connStr)
 	rd := redis.New()
+
 	dep.User = user.New(pg, rd)
+	dep.Token = token.New(pg, rd)
 	return dep
 }

@@ -12,10 +12,8 @@ type redis struct {
 }
 
 type Redis interface {
-	// User
-	CreateToken(user *models.User) error
-	// UpdateUser(user *models.User) error
-	// GetUser(user *models.User) ([]*models.User, error)
+	Create(otp *models.OTP) error
+	Get(otp *models.OTP) error
 }
 
 func New(conn ...string) Redis {
@@ -36,10 +34,22 @@ func New(conn ...string) Redis {
 	return &redis{Redis: client}
 }
 
-func (r *redis) CreateToken(user *models.User) error {
-	err := r.Redis.Set("user.XID-", "value", 0).Err()
+func (r *redis) Create(otp *models.OTP) error {
+	err := r.Redis.Set(otp.Key, otp.Value, 0).Err()
+
+	r.Redis.ExpireAt(otp.Key, otp.Expire)
+
 	if err != nil {
-		panic(err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *redis) Get(otp *models.OTP) error {
+	_, err := r.Redis.Get(otp.Key).Result()
+	if err != nil {
+		return err
 	}
 
 	return nil

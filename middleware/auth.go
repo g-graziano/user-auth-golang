@@ -46,6 +46,45 @@ func JwtAuthentication(next http.Handler) http.Handler {
 			return
 		}
 
+		xid := claims.(jwt.MapClaims)["xid"].(string)
+		if jwtType := claims.(jwt.MapClaims)["type"].(string); jwtType != "login" {
+			response = helper.Message(false, "Invalid auth token")
+			w.WriteHeader(http.StatusForbidden)
+			w.Header().Add("Content-Type", "application/json; charset=utf-8")
+			helper.Response(w, response)
+			return
+		}
+
+		r.Header.Set("xid", xid)
+		r.Header.Set("token", tokenString)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func JwtTfaAuthentication(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := make(map[string]interface{})
+		tokenString := r.Header.Get("Authorization")
+
+		if len(tokenString) == 0 {
+			response = helper.Message(false, "Missing auth token")
+			w.WriteHeader(http.StatusForbidden)
+			w.Header().Add("Content-Type", "application/json; charset=utf-8")
+			helper.Response(w, response)
+			return
+		}
+
+		tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
+		claims, err := VerifyToken(tokenString)
+		if err != nil {
+			response = helper.Message(false, "Invalid auth token")
+			w.WriteHeader(http.StatusForbidden)
+			w.Header().Add("Content-Type", "application/json; charset=utf-8")
+			helper.Response(w, response)
+			return
+		}
+
 		email := claims.(jwt.MapClaims)["email"].(string)
 		xid := claims.(jwt.MapClaims)["xid"].(string)
 
