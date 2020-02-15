@@ -18,6 +18,7 @@ require (
 	github.com/rs/xid v1.2.1
 	github.com/sendgrid/rest v2.4.1+incompatible // indirect
 	github.com/sendgrid/sendgrid-go v3.5.0+incompatible
+	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
 	golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )

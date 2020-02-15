@@ -3,9 +3,9 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
+	"github.com/g-graziano/userland/helper"
 	"github.com/g-graziano/userland/models"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -25,7 +25,15 @@ type Postgres interface {
 
 	// Token
 	CreateToken(token *models.UserToken) error
+	DeleteToken(token *models.UserToken) error
 	GetToken(token *models.UserToken) ([]*models.UserToken, error)
+
+	//BackupCode
+	CreateBackUpCode(code *models.BackupCodes) error
+	GetBackUpCode(code *models.BackupCodes) ([]*models.BackupCodes, error)
+
+	//ClientID
+	GetClientID(code *models.ClientID) ([]*models.ClientID, error)
 }
 
 func New(conn ...string) Postgres {
@@ -70,6 +78,8 @@ func New(conn ...string) Postgres {
 		dbConn.Debug().AutoMigrate(
 			&models.User{},
 			&models.UserToken{},
+			&models.BackupCodes{},
+			&models.ClientID{},
 		)
 
 		// gorms = append(gorms, dbConn)
@@ -93,7 +103,7 @@ func (p *postgres) CreateUser(user *models.User) error {
 		user.Fullname,
 		user.Email,
 		user.Password,
-		1,
+		"nonactive",
 		time.Now(),
 		time.Now(),
 	)
@@ -117,10 +127,11 @@ func (p *postgres) UpdateUser(user *models.User) error {
 			bio = $5,
 			web = $6,
 			picture = $7,
-			token = $8,
-			status = $9,
-			updated_at = $10
-		WHERE id=$11`,
+			status = $8,
+			tfa = $9,
+			enabled_tfa_at = $10,
+			updated_at = $11
+		WHERE id=$12`,
 		user.Email,
 		user.Fullname,
 		user.Password,
@@ -128,8 +139,9 @@ func (p *postgres) UpdateUser(user *models.User) error {
 		user.Bio,
 		user.Web,
 		user.Picture,
-		user.Token,
 		user.Status,
+		user.TFA,
+		user.EnabledTfaAt,
 		updatedAt,
 		user.ID,
 	)
@@ -142,7 +154,8 @@ func (p *postgres) UpdateUser(user *models.User) error {
 }
 
 func (p *postgres) GetUser(user *models.User) ([]*models.User, error) {
-	if user.Email != "" {
+	if user.Email != "" && user.XID != "" {
+		// Search other user
 		var allUser []*models.User
 
 		rows, err := p.DB[0].Query(`
@@ -156,11 +169,12 @@ func (p *postgres) GetUser(user *models.User) ([]*models.User, error) {
 				bio,
 				web,
 				picture,
-				token,
 				status,
+				tfa,
+				enabled_tfa_at,
 				created_at,
 				updated_at 
-			FROM USERS WHERE email = $1 and status != 0`, user.Email)
+			FROM USERS WHERE email = $1 and x_id != $2`, user.Email, user.XID)
 
 		if err != nil {
 			return nil, err
@@ -180,12 +194,66 @@ func (p *postgres) GetUser(user *models.User) ([]*models.User, error) {
 				&user.Bio,
 				&user.Web,
 				&user.Picture,
-				&user.Token,
 				&user.Status,
+				&user.TFA,
+				&user.EnabledTfaAt,
 				&user.CreatedAt,
 				&user.UpdatedAt,
 			); err != nil {
-				log.Fatal(err)
+				return nil, err
+			}
+
+			allUser = append(allUser, user)
+		}
+
+		return allUser, nil
+	} else if user.Email != "" {
+		// Search user by email status != deleted
+		var allUser []*models.User
+
+		rows, err := p.DB[0].Query(`
+			SELECT 
+				id, 
+				x_id,
+				fullname,
+				email,
+				password,
+				location,
+				bio,
+				web,
+				picture,
+				status,
+				tfa,
+				enabled_tfa_at,
+				created_at,
+				updated_at 
+			FROM USERS WHERE email = $1 and status != 'deleted'`, user.Email)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var user = &models.User{}
+			if err := rows.Scan(
+				&user.ID,
+				&user.XID,
+				&user.Fullname,
+				&user.Email,
+				&user.Password,
+				&user.Location,
+				&user.Bio,
+				&user.Web,
+				&user.Picture,
+				&user.Status,
+				&user.TFA,
+				&user.EnabledTfaAt,
+				&user.CreatedAt,
+				&user.UpdatedAt,
+			); err != nil {
+				return nil, err
 			}
 
 			allUser = append(allUser, user)
@@ -207,11 +275,12 @@ func (p *postgres) GetUser(user *models.User) ([]*models.User, error) {
 				bio,
 				web,
 				picture,
-				token,
 				status,
+				tfa,
+				enabled_tfa_at,
 				created_at,
 				updated_at 
-			FROM USERS WHERE x_id = $1 and status != 0`, user.XID)
+			FROM USERS WHERE x_id = $1 and status != 'deleted'`, user.XID)
 
 		if err != nil {
 			return nil, err
@@ -231,12 +300,13 @@ func (p *postgres) GetUser(user *models.User) ([]*models.User, error) {
 				&user.Bio,
 				&user.Web,
 				&user.Picture,
-				&user.Token,
 				&user.Status,
+				&user.TFA,
+				&user.EnabledTfaAt,
 				&user.CreatedAt,
 				&user.UpdatedAt,
 			); err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 
 			allUser = append(allUser, user)
@@ -263,11 +333,12 @@ func (p *postgres) GetActiveUser(user *models.User) ([]*models.User, error) {
 				bio,
 				web,
 				picture,
-				token,
 				status,
+				tfa,
+				enabled_tfa_at,
 				created_at,
 				updated_at 
-			FROM USERS WHERE email = $1 and status = 2`, user.Email)
+			FROM USERS WHERE email = $1 and status = 'active'`, user.Email)
 
 		if err != nil {
 			return nil, err
@@ -287,12 +358,13 @@ func (p *postgres) GetActiveUser(user *models.User) ([]*models.User, error) {
 				&user.Bio,
 				&user.Web,
 				&user.Picture,
-				&user.Token,
 				&user.Status,
+				&user.TFA,
+				&user.EnabledTfaAt,
 				&user.CreatedAt,
 				&user.UpdatedAt,
 			); err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 
 			allUser = append(allUser, user)
@@ -310,11 +382,16 @@ func (p *postgres) GetActiveUser(user *models.User) ([]*models.User, error) {
 				fullname,
 				email,
 				password,
-				token,
+				location,
+				bio,
+				web,
+				picture,
 				status,
+				tfa,
+				enabled_tfa_at,
 				created_at,
 				updated_at 
-			FROM USERS WHERE x_id = $1 and status != 2`, user.XID)
+			FROM USERS WHERE x_id = $1 and status = 'active'`, user.XID)
 
 		if err != nil {
 			return nil, err
@@ -330,12 +407,17 @@ func (p *postgres) GetActiveUser(user *models.User) ([]*models.User, error) {
 				&user.Fullname,
 				&user.Email,
 				&user.Password,
-				&user.Token,
+				&user.Location,
+				&user.Bio,
+				&user.Web,
+				&user.Picture,
 				&user.Status,
+				&user.TFA,
+				&user.EnabledTfaAt,
 				&user.CreatedAt,
 				&user.UpdatedAt,
 			); err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 
 			allUser = append(allUser, user)
@@ -354,13 +436,15 @@ func (p *postgres) CreateToken(token *models.UserToken) error {
 			user_id,
 			status,
 			token_type,
+			refresh_token,
 			created_at,
 			updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6)`,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		token.Token,
 		token.UserID,
-		1,
+		"active",
 		token.TokenType,
+		token.RefreshToken,
 		time.Now(),
 		time.Now(),
 	)
@@ -372,44 +456,183 @@ func (p *postgres) CreateToken(token *models.UserToken) error {
 	return nil
 }
 
-func (p *postgres) GetToken(token *models.UserToken) ([]*models.UserToken, error) {
-	var allUser []*models.UserToken
+func (p *postgres) DeleteToken(token *models.UserToken) error {
+	if token.RefreshToken != helper.NullStringFunc("", false) {
+		updatedAt := time.Now()
 
-	rows, err := p.DB[0].Query(`
-			SELECT
-				user_id,
-				token,
-				token_type,
-				status,
-				created_at,
-				updated_at
-			FROM USER_TOKENS WHERE 
-				user_id = $1 and 
-				token_type = $2 and
-				token = $3 and
-				status = $4`, token.UserID, token.TokenType, token.Token, 1)
+		_, err := p.DB[0].Exec(`
+			UPDATE USER_TOKENS SET 
+				status = $1,
+				updated_at = $2
+			WHERE refresh_token = $3`,
+			"nonactive",
+			updatedAt,
+			token.RefreshToken,
+		)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return err
+		}
+	} else if token.Token != "" && token.UserID != 0 {
+		updatedAt := time.Now()
+
+		_, err := p.DB[0].Exec(`
+			UPDATE USER_TOKENS SET
+				status = $1,
+				updated_at = $2
+			WHERE token != $3 and user_id = $4`,
+			"nonactive",
+			updatedAt,
+			token.Token,
+			token.UserID,
+		)
+
+		if err != nil {
+			return err
+		}
+	} else if token.Token != "" {
+		updatedAt := time.Now()
+
+		_, err := p.DB[0].Exec(`
+			UPDATE USER_TOKENS SET
+				status = $1,
+				updated_at = $2
+			WHERE token = $3`,
+			"nonactive",
+			updatedAt,
+			token.Token,
+		)
+
+		if err != nil {
+			return err
+		}
 	}
 
-	defer rows.Close()
+	return nil
+}
 
-	for rows.Next() {
-		var userToken = &models.UserToken{}
-		if err := rows.Scan(
-			&userToken.UserID,
-			&userToken.Token,
-			&userToken.TokenType,
-			&userToken.Status,
-			&userToken.CreatedAt,
-			&userToken.UpdatedAt,
-		); err != nil {
-			log.Fatal(err)
+func (p *postgres) GetToken(token *models.UserToken) ([]*models.UserToken, error) {
+	var results []*models.UserToken
+
+	if token.Token != "" {
+		rows, err := p.DB[0].Query(`
+				SELECT
+					user_id,
+					token,
+					token_type,
+					refresh_token,
+					status,
+					created_at,
+					updated_at
+				FROM USER_TOKENS WHERE 
+					token = $1`, token.Token)
+
+		if err != nil {
+			return nil, err
 		}
 
-		allUser = append(allUser, userToken)
+		defer rows.Close()
+
+		for rows.Next() {
+			var userToken = &models.UserToken{}
+			if err := rows.Scan(
+				&userToken.UserID,
+				&userToken.Token,
+				&userToken.TokenType,
+				&userToken.RefreshToken,
+				&userToken.Status,
+				&userToken.CreatedAt,
+				&userToken.UpdatedAt,
+			); err != nil {
+				return nil, err
+			}
+
+			results = append(results, userToken)
+		}
 	}
 
-	return allUser, nil
+	return results, nil
+}
+
+func (p *postgres) CreateBackUpCode(code *models.BackupCodes) error {
+	_, err := p.DB[0].Exec(`
+		INSERT INTO BACKUP_CODES (
+			user_id,
+			codes
+		) VALUES ($1, $2)`,
+		code.UserID,
+		code.Codes,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *postgres) GetBackUpCode(codes *models.BackupCodes) ([]*models.BackupCodes, error) {
+	var results []*models.BackupCodes
+
+	if codes.UserID != 0 && codes.Codes != "" {
+		rows, err := p.DB[0].Query(`
+				SELECT
+					user_id,
+					codes
+				FROM BACKUP_CODES WHERE 
+					user_id = $1 and codes = $2`, codes.UserID, codes.Codes)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var userCode = &models.BackupCodes{}
+			if err := rows.Scan(
+				&userCode.UserID,
+				&userCode.Codes,
+			); err != nil {
+				return nil, err
+			}
+
+			results = append(results, userCode)
+		}
+	}
+
+	return results, nil
+}
+
+func (p *postgres) GetClientID(client *models.ClientID) ([]*models.ClientID, error) {
+	var results []*models.ClientID
+
+	if client.API != "" {
+		rows, err := p.DB[0].Query(`
+				SELECT
+					api,
+					name
+				FROM CLIENT_IDS WHERE 
+					api = $1`, client.API)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var clienIDRow = &models.ClientID{}
+			if err := rows.Scan(
+				&clienIDRow.API,
+				&clienIDRow.Name,
+			); err != nil {
+				return nil, err
+			}
+
+			results = append(results, clienIDRow)
+		}
+	}
+
+	return results, nil
 }

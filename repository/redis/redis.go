@@ -13,7 +13,7 @@ type redis struct {
 
 type Redis interface {
 	Create(otp *models.OTP) error
-	Get(otp *models.OTP) error
+	Get(otp *models.OTP) (string, error)
 }
 
 func New(conn ...string) Redis {
@@ -46,11 +46,11 @@ func (r *redis) Create(otp *models.OTP) error {
 	return nil
 }
 
-func (r *redis) Get(otp *models.OTP) error {
-	_, err := r.Redis.Get(otp.Key).Result()
+func (r *redis) Get(otp *models.OTP) (string, error) {
+	res, err := r.Redis.Get(otp.Key).Result()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return res, nil
 }
