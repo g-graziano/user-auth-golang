@@ -15,8 +15,9 @@ type UserToken struct {
 	TokenType    string            `gorm:"not null" json:"token_type"`
 	RefreshToken helper.NullString `gorm:"null" json:"refresh_token"`
 	Status       string            `gorm:"not null; type:varchar(255)" json:"status"`
-	IPAddress    string            `gorm:"null" json:"ip_address"`
+	IPAddress    helper.NullString `gorm:"null" json:"ip_address"`
 	ClientID     uint64            `gorm:"null" json:"client_id"`
+	ClientName   string            `gorm:"-" json:"client_name"`
 	CreatedAt    time.Time         `gorm:"not null" json:"-"`
 	UpdatedAt    time.Time         `gorm:"not null" json:"-"`
 }
@@ -34,7 +35,29 @@ type AccessToken struct {
 
 type AccessTokenRequest struct {
 	XID          string `json:"value"`
-	RefreshToken string `json:"type"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type ListSessionRequest struct {
+	XID   string `json:"value"`
+	Token string `json:"token"`
+}
+
+type ListSessionResponse struct {
+	Data []ListSessionResponseData `json:"data"`
+}
+
+type ListSessionResponseData struct {
+	IsCurrent bool              `json:"is_current"`
+	IP        helper.NullString `json:"ip"`
+	Client    DataClient        `json:"client"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
+}
+
+type DataClient struct {
+	ID   uint64 `json:"id"`
+	Name string `json:"name"`
 }
 
 type ForgotPassToken struct {

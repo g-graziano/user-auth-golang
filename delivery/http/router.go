@@ -60,6 +60,8 @@ func Router(user user.User, token token.Token) {
 			r.Get("/session/refresh_token", HandleGetRefreshToken(user))
 			r.Delete("/session/other", HandleDeleteOtherSession(user))
 			r.Delete("/session", HandleEndCurrentSession(user))
+
+			r.Get("/session", HandleGetListSession(user))
 		})
 
 		r.With(middleware.JwtACTAuthentication).Get("/session/access_token", HandleGetNewAccessToken(user))

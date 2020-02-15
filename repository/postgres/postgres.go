@@ -27,6 +27,7 @@ type Postgres interface {
 	CreateToken(token *models.UserToken) error
 	DeleteToken(token *models.UserToken) error
 	GetToken(token *models.UserToken) ([]*models.UserToken, error)
+	GetSession(token *models.UserToken) ([]*models.UserToken, error)
 
 	//BackupCode
 	CreateBackUpCode(code *models.BackupCodes) error
@@ -545,6 +546,92 @@ func (p *postgres) GetToken(token *models.UserToken) ([]*models.UserToken, error
 				&userToken.TokenType,
 				&userToken.RefreshToken,
 				&userToken.Status,
+				&userToken.CreatedAt,
+				&userToken.UpdatedAt,
+			); err != nil {
+				return nil, err
+			}
+
+			results = append(results, userToken)
+		}
+	} else if token.UserID != 0 {
+		rows, err := p.DB[0].Query(`
+				SELECT
+					user_id,
+					token,
+					token_type,
+					refresh_token,
+					status,
+					created_at,
+					updated_at
+				FROM USER_TOKENS WHERE 
+					user_id = $1`, token.UserID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var userToken = &models.UserToken{}
+			if err := rows.Scan(
+				&userToken.UserID,
+				&userToken.Token,
+				&userToken.TokenType,
+				&userToken.RefreshToken,
+				&userToken.Status,
+				&userToken.CreatedAt,
+				&userToken.UpdatedAt,
+			); err != nil {
+				return nil, err
+			}
+
+			results = append(results, userToken)
+		}
+	}
+
+	return results, nil
+}
+
+func (p *postgres) GetSession(token *models.UserToken) ([]*models.UserToken, error) {
+	var results []*models.UserToken
+
+	if token.UserID != 0 {
+		rows, err := p.DB[0].Query(`
+				SELECT
+					u.user_id,
+					u.token,
+					u.token_type,
+					u.refresh_token,
+					u.status,
+					u.client_id,
+					c.name,
+					u.ip_address,
+					u.created_at,
+					u.updated_at
+				FROM USER_TOKENS as u
+				LEFT JOIN CLIENT_IDS AS c ON u.client_id = c.id
+				WHERE 
+					u.user_id = $1 and u.status = 'active'`, token.UserID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var userToken = &models.UserToken{}
+			if err := rows.Scan(
+				&userToken.UserID,
+				&userToken.Token,
+				&userToken.TokenType,
+				&userToken.RefreshToken,
+				&userToken.Status,
+				&userToken.ClientID,
+				&userToken.ClientName,
+				&userToken.IPAddress,
 				&userToken.CreatedAt,
 				&userToken.UpdatedAt,
 			); err != nil {

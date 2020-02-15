@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -53,6 +54,7 @@ type User interface {
 	CheckJWTIsActive(token *models.UserToken) error
 	ActivateTfa(secret *models.ActivateTfaRequest) (*models.BackupCodesResponse, error)
 	ByPassTfa(code *models.OTPRequest) (*models.AccessToken, error)
+	GetListSession(session *models.ListSessionRequest) (*models.ListSessionResponse, error)
 }
 
 type user struct {
@@ -65,6 +67,48 @@ func New(pg postgres.Postgres, rd redis.Redis) User {
 		postgres: pg,
 		redis:    rd,
 	}
+}
+
+func (u *user) GetListSession(session *models.ListSessionRequest) (*models.ListSessionResponse, error) {
+	currentUser, err := u.postgres.GetUser(&models.User{XID: session.XID})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(currentUser) < 1 {
+		return nil, errors.New("Invalid auth token")
+	}
+
+	sessionResult, err := u.postgres.GetSession(&models.UserToken{UserID: currentUser[0].ID})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var listSession models.ListSessionResponse
+	var listSessionData models.ListSessionResponseData
+
+	for _, v := range sessionResult {
+		listSessionData.IsCurrent = false
+
+		if session.Token == v.Token {
+			listSessionData.IsCurrent = true
+		}
+
+		listSessionData.IP = v.IPAddress
+		listSessionData.CreatedAt = v.CreatedAt
+		listSessionData.UpdatedAt = v.UpdatedAt
+
+		listSessionData.Client.ID = v.UserID
+		listSessionData.Client.Name = v.ClientName
+
+		fmt.Printf("%+v", v.IPAddress)
+
+		listSession.Data = append(listSession.Data, listSessionData)
+	}
+
+	return &listSession, nil
 }
 
 func (u *user) CheckJWTIsActive(token *models.UserToken) error {
@@ -206,7 +250,7 @@ func (u *user) Login(user *models.Login) (*models.AccessToken, error) {
 		UserID:       loginUser[0].ID,
 		TokenType:    "Bearer",
 		RefreshToken: helper.NullStringFunc("", false),
-		IPAddress:    user.IPAddress,
+		IPAddress:    helper.NullStringFunc(user.IPAddress, true),
 		ClientID:     user.ClientID,
 	})
 

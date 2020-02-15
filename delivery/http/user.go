@@ -665,3 +665,29 @@ func HandleByPassTfa(user user.User) http.HandlerFunc {
 		return
 	}
 }
+
+func HandleGetListSession(user user.User) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		xid := r.Header.Get("xid")
+		token := r.Header.Get("token")
+
+		listSessionRequest := &models.ListSessionRequest{Token: token, XID: xid}
+
+		listSession, err := user.GetListSession(listSessionRequest)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		bs, err := json.ConfigFastest.Marshal(listSession)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, "Invalid Request"))
+			return
+		}
+
+		w.Write(bs)
+		return
+	}
+}
