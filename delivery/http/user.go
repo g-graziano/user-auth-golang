@@ -5,6 +5,7 @@ import (
 	"image"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/g-graziano/userland/helper"
 	"github.com/g-graziano/userland/models"
@@ -86,7 +87,7 @@ func HandleRequestEmailVerification(user user.User) http.HandlerFunc {
 
 func HandleLogin(user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var loginUser *models.User
+		var loginUser *models.Login
 		if err := json.NewDecoder(r.Body).Decode(&loginUser); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
@@ -99,6 +100,14 @@ func HandleLogin(user user.User) http.HandlerFunc {
 		}
 
 		loginUser.IPAddress = ipAddress
+		clientID, err := strconv.ParseUint(r.Header.Get("client-id"), 0, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		loginUser.ClientID = clientID
 
 		login, err := user.Login(loginUser)
 		if err != nil {

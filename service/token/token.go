@@ -58,6 +58,10 @@ func (t *token) VerifyTfa(otp *models.OTPRequest) (*models.AccessToken, error) {
 
 	err = t.postgres.CreateToken(&models.UserToken{Token: tokenString, UserID: verifyUser[0].ID, TokenType: "login"})
 
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.AccessToken{
 		Value:     tokenString,
 		Type:      "Bearer",

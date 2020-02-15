@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
@@ -56,7 +57,7 @@ func APIClientAuthentication(u user.User) (ret func(http.Handler) http.Handler) 
 				return
 			}
 
-			r.Header.Set("token", tokenString)
+			r.Header.Set("client-id", strconv.FormatUint(client.ID, 10))
 
 			next.ServeHTTP(w, r)
 		})
@@ -135,6 +136,7 @@ func JwtAuthentication(u user.User) (ret func(http.Handler) http.Handler) {
 				return
 			}
 
+			tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
 			err = u.CheckJWTIsActive(&models.UserToken{Token: tokenString})
 
 			if err != nil {

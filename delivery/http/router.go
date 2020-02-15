@@ -31,7 +31,7 @@ func Router(user user.User, token token.Token) {
 
 		r.Get("/verification/{xid}", HandleEmailVerification(user))
 
-		r.With(middleware.JwtAuthentication(user)).Group(func(r chi.Router) {
+		r.With(middleware.JwtTfaAuthentication).Group(func(r chi.Router) {
 			r.Post("/tfa/bypass", HandleByPassTfa(user))
 			r.Post("/tfa/verify", HandleVerifyTfa(token))
 		})

@@ -40,6 +40,7 @@ type Login struct {
 	Email     string `json:"email"`
 	Password  string `json:"password"`
 	IPAddress string `json:"ip_address"`
+	ClientID  uint64 `json:"client_id"`
 }
 
 type UploadProfile struct {

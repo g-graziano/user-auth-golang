@@ -437,14 +437,18 @@ func (p *postgres) CreateToken(token *models.UserToken) error {
 			status,
 			token_type,
 			refresh_token,
+			ip_address,
+			client_id,
 			created_at,
 			updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		token.Token,
 		token.UserID,
 		"active",
 		token.TokenType,
 		token.RefreshToken,
+		token.IPAddress,
+		token.ClientID,
 		time.Now(),
 		time.Now(),
 	)
@@ -610,6 +614,7 @@ func (p *postgres) GetClientID(client *models.ClientID) ([]*models.ClientID, err
 	if client.API != "" {
 		rows, err := p.DB[0].Query(`
 				SELECT
+					id,
 					api,
 					name
 				FROM CLIENT_IDS WHERE 
@@ -624,6 +629,7 @@ func (p *postgres) GetClientID(client *models.ClientID) ([]*models.ClientID, err
 		for rows.Next() {
 			var clienIDRow = &models.ClientID{}
 			if err := rows.Scan(
+				&clienIDRow.ID,
 				&clienIDRow.API,
 				&clienIDRow.Name,
 			); err != nil {

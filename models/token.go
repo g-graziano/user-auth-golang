@@ -16,7 +16,7 @@ type UserToken struct {
 	RefreshToken helper.NullString `gorm:"null" json:"refresh_token"`
 	Status       string            `gorm:"not null; type:varchar(255)" json:"status"`
 	IPAddress    string            `gorm:"null" json:"ip_address"`
-	ClientID     string            `gorm:"null" json:"client_id"`
+	ClientID     uint64            `gorm:"null" json:"client_id"`
 	CreatedAt    time.Time         `gorm:"not null" json:"-"`
 	UpdatedAt    time.Time         `gorm:"not null" json:"-"`
 }

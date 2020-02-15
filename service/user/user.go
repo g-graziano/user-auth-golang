@@ -26,7 +26,7 @@ import (
 
 type User interface {
 	GetAPIClientID(client *models.ClientID) (*models.ClientID, error)
-	Login(user *models.User) (*models.AccessToken, error)
+	Login(user *models.Login) (*models.AccessToken, error)
 	Logout(user *models.User) error
 	Register(user *models.RegisterRequest) error
 	VerifyEmail(user *models.User) error
@@ -161,12 +161,12 @@ func (u *user) GetAPIClientID(client *models.ClientID) (*models.ClientID, error)
 	return result[0], nil
 }
 
-func (u *user) Login(user *models.User) (*models.AccessToken, error) {
+func (u *user) Login(user *models.Login) (*models.AccessToken, error) {
 	var loginUser []*models.User
 
 	user.Email = strings.ToLower(user.Email)
 
-	loginUser, err := u.postgres.GetActiveUser(user)
+	loginUser, err := u.postgres.GetActiveUser(&models.User{Email: user.Email})
 
 	if err != nil {
 		return nil, err
@@ -201,7 +201,18 @@ func (u *user) Login(user *models.User) (*models.AccessToken, error) {
 		ExpiredAt: time.Now().Add(token.ExpiredAt).String(),
 	}
 
-	err = u.postgres.CreateToken(&models.UserToken{Token: tokenString, UserID: loginUser[0].ID, TokenType: "Bearer", RefreshToken: helper.NullStringFunc("", false)})
+	err = u.postgres.CreateToken(&models.UserToken{
+		Token:        tokenString,
+		UserID:       loginUser[0].ID,
+		TokenType:    "Bearer",
+		RefreshToken: helper.NullStringFunc("", false),
+		IPAddress:    user.IPAddress,
+		ClientID:     user.ClientID,
+	})
+
+	if err != nil {
+		return nil, err
+	}
 
 	if loginUser[0].TFA {
 		u.SendEmailOTP(loginUser[0])
