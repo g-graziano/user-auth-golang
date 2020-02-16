@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"math/rand"
@@ -8,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/skip2/go-qrcode"
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 func Message(status bool, message string) map[string]interface{} {
@@ -59,4 +60,26 @@ func GenerateRandChar(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func StringToInterface(str string) interface{} {
+	return str
+}
+
+func GetReqHeader(ctx *context.Context, r *http.Request) error {
+	ipAddress := r.Header.Get("X-FORWARDED-FOR")
+	if ipAddress == "" {
+		ipAddress = r.RemoteAddr
+	}
+
+	clientID, err := strconv.ParseUint(r.Header.Get("client-id"), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	*ctx = context.WithValue(*ctx, StringToInterface("ip-address"), ipAddress)
+	*ctx = context.WithValue(*ctx, StringToInterface("user-agent"), r.Header.Get("User-Agent"))
+	*ctx = context.WithValue(*ctx, StringToInterface("client-id"), clientID)
+
+	return nil
 }

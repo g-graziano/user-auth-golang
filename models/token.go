@@ -68,8 +68,9 @@ type ForgotPassToken struct {
 type TokenClaim struct {
 	jwt.StandardClaims
 	XID        string        `json:"xid"`
-	Email      string        `json:"phone_number"`
+	Email      string        `json:"email"`
 	AccessType string        `json:"access_type"`
+	ClientID   uint64        `json:"client_id"`
 	ExpiredAt  time.Duration `json:"expired_at"`
 }
 
@@ -80,18 +81,12 @@ func (e *TokenClaim) TokenGenerator() string {
 	var claim TokenClaim
 
 	if e.XID != "" {
-		claim = TokenClaim{
-			XID:        e.XID,
-			Email:      e.Email,
-			AccessType: e.AccessType,
-		}
-	} else {
-		claim = TokenClaim{
-			Email:      e.Email,
-			AccessType: e.AccessType,
-		}
+		claim.XID = e.XID
 	}
 
+	claim.Email = e.Email
+	claim.AccessType = e.AccessType
+	claim.ClientID = e.ClientID
 	claim.IssuedAt = now.Unix()
 	claim.ExpiresAt = end.Unix()
 

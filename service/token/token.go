@@ -1,6 +1,7 @@
 package token
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strconv"
@@ -13,7 +14,7 @@ import (
 )
 
 type Token interface {
-	VerifyTfa(otp *models.OTPRequest) (*models.AccessToken, error)
+	VerifyTfa(ctx context.Context, otp *models.OTPRequest) (*models.AccessToken, error)
 }
 
 type token struct {
@@ -28,7 +29,7 @@ func New(pg postgres.Postgres, rd redis.Redis) Token {
 	}
 }
 
-func (t *token) VerifyTfa(otp *models.OTPRequest) (*models.AccessToken, error) {
+func (t *token) VerifyTfa(ctx context.Context, otp *models.OTPRequest) (*models.AccessToken, error) {
 	verifyUser, err := t.postgres.GetUser(&models.User{XID: otp.XID})
 
 	if err != nil {
@@ -56,7 +57,7 @@ func (t *token) VerifyTfa(otp *models.OTPRequest) (*models.AccessToken, error) {
 
 	tokenString, _ := token.SignedString(signKey)
 
-	err = t.postgres.CreateToken(&models.UserToken{Token: tokenString, UserID: verifyUser[0].ID, TokenType: "login"})
+	err = t.postgres.CreateToken(ctx, &models.UserToken{Token: tokenString, UserID: verifyUser[0].ID, TokenType: "login"})
 
 	if err != nil {
 		return nil, err

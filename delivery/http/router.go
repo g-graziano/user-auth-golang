@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"time"
@@ -12,7 +13,7 @@ import (
 	mdlw "github.com/go-chi/chi/middleware"
 )
 
-func Router(user user.User, token token.Token) {
+func Router(ctx context.Context, user user.User, token token.Token) {
 	r := chi.NewRouter()
 	r.Use(mdlw.Logger)
 	r.Use(mdlw.Timeout(60 * time.Second))
@@ -21,7 +22,7 @@ func Router(user user.User, token token.Token) {
 	r.Route("/auth", func(r chi.Router) {
 		r.With(middleware.APIClientAuthentication(user)).Group(func(r chi.Router) {
 			r.Post("/register", HandleUserRegister(user))
-			r.Post("/login", HandleLogin(user))
+			r.Post("/login", HandleLogin(ctx, user))
 
 			r.Post("/verification", HandleRequestEmailVerification(user))
 
@@ -32,8 +33,8 @@ func Router(user user.User, token token.Token) {
 		r.Get("/verification/{xid}", HandleEmailVerification(user))
 
 		r.With(middleware.JwtTfaAuthentication).Group(func(r chi.Router) {
-			r.Post("/tfa/bypass", HandleByPassTfa(user))
-			r.Post("/tfa/verify", HandleVerifyTfa(token))
+			r.Post("/tfa/bypass", HandleByPassTfa(ctx, user))
+			r.Post("/tfa/verify", HandleVerifyTfa(ctx, token))
 		})
 	})
 
@@ -57,14 +58,15 @@ func Router(user user.User, token token.Token) {
 			r.Get("/tfa/enroll", HandleTfaEnroll(user))
 			r.Post("/tfa/enroll", HandleActivateTfa(user))
 
-			r.Get("/session/refresh_token", HandleGetRefreshToken(user))
+			r.Get("/session", HandleGetListSession(user))
+			r.Get("/session/refresh_token", HandleGetRefreshToken(ctx, user))
 			r.Delete("/session/other", HandleDeleteOtherSession(user))
 			r.Delete("/session", HandleEndCurrentSession(user))
 
-			r.Get("/session", HandleGetListSession(user))
+			r.Get("/events", HandleGetListEvent(user))
 		})
 
-		r.With(middleware.JwtACTAuthentication).Get("/session/access_token", HandleGetNewAccessToken(user))
+		r.With(middleware.JwtACTAuthentication).Get("/session/access_token", HandleGetNewAccessToken(ctx, user))
 	})
 
 	http.ListenAndServe(os.Getenv("SERVER_ADDRESS"), r)

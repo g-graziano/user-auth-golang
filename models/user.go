@@ -36,11 +36,18 @@ type User struct {
 }
 
 type Login struct {
-	XID       string `json:"xid"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
+	XID      string `json:"xid"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	// IPAddress string `json:"ip_address"`
+	// ClientID  uint64 `json:"client_id"`
+	// UserAgent string `json:"user-agent"`
+}
+
+type LogEvent struct {
 	IPAddress string `json:"ip_address"`
 	ClientID  uint64 `json:"client_id"`
+	UserAgent string `json:"user-agent"`
 }
 
 type UploadProfile struct {

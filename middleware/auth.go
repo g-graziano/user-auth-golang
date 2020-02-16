@@ -85,6 +85,7 @@ func JwtTfaAuthentication(next http.Handler) http.Handler {
 
 		r.Header.Set("xid", claims.XID)
 		r.Header.Set("token", tokenString)
+		r.Header.Set("client-id", strconv.FormatUint(claims.ClientID, 10))
 
 		next.ServeHTTP(w, r)
 	})
@@ -111,6 +112,7 @@ func JwtACTAuthentication(next http.Handler) http.Handler {
 
 		r.Header.Set("xid", claims.XID)
 		r.Header.Set("token", tokenString)
+		r.Header.Set("client-id", strconv.FormatUint(claims.ClientID, 10))
 
 		next.ServeHTTP(w, r)
 	})
@@ -148,6 +150,7 @@ func JwtAuthentication(u user.User) (ret func(http.Handler) http.Handler) {
 			r.Header.Set("email", claims.Email)
 			r.Header.Set("xid", claims.XID)
 			r.Header.Set("token", tokenString)
+			r.Header.Set("client-id", strconv.FormatUint(claims.ClientID, 10))
 
 			next.ServeHTTP(w, r)
 		})

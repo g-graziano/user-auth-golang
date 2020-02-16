@@ -2,10 +2,10 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"image"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/g-graziano/userland/helper"
 	"github.com/g-graziano/userland/models"
@@ -85,7 +85,7 @@ func HandleRequestEmailVerification(user user.User) http.HandlerFunc {
 	}
 }
 
-func HandleLogin(user user.User) http.HandlerFunc {
+func HandleLogin(ctx context.Context, user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var loginUser *models.Login
 		if err := json.NewDecoder(r.Body).Decode(&loginUser); err != nil {
@@ -94,22 +94,15 @@ func HandleLogin(user user.User) http.HandlerFunc {
 			return
 		}
 
-		ipAddress := r.Header.Get("X-FORWARDED-FOR")
-		if ipAddress == "" {
-			ipAddress = r.RemoteAddr
-		}
+		err := helper.GetReqHeader(&ctx, r)
 
-		loginUser.IPAddress = ipAddress
-		clientID, err := strconv.ParseUint(r.Header.Get("client-id"), 0, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
 			return
 		}
 
-		loginUser.ClientID = clientID
-
-		login, err := user.Login(loginUser)
+		login, err := user.Login(ctx, loginUser)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
@@ -266,11 +259,18 @@ func HandleGetTfaStatus(user user.User) http.HandlerFunc {
 	}
 }
 
-func HandleGetRefreshToken(user user.User) http.HandlerFunc {
+func HandleGetRefreshToken(ctx context.Context, user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		xid := r.Header.Get("xid")
 
-		token, err := user.RefreshToken(&models.User{XID: xid})
+		err := helper.GetReqHeader(&ctx, r)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		token, err := user.RefreshToken(ctx, &models.User{XID: xid})
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
@@ -290,12 +290,19 @@ func HandleGetRefreshToken(user user.User) http.HandlerFunc {
 	}
 }
 
-func HandleGetNewAccessToken(user user.User) http.HandlerFunc {
+func HandleGetNewAccessToken(ctx context.Context, user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		xid := r.Header.Get("xid")
 		refreshToken := r.Header.Get("token")
 
-		token, err := user.GetNewAccessToken(&models.AccessTokenRequest{XID: xid, RefreshToken: refreshToken})
+		err := helper.GetReqHeader(&ctx, r)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		token, err := user.GetNewAccessToken(ctx, &models.AccessTokenRequest{XID: xid, RefreshToken: refreshToken})
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
@@ -364,6 +371,30 @@ func HandleGetUserEmail(user user.User) http.HandlerFunc {
 		}
 
 		bs, err := json.ConfigFastest.Marshal(email)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		w.Write(bs)
+
+		return
+	}
+}
+
+func HandleGetListEvent(user user.User) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		xid := r.Header.Get("xid")
+
+		listEvent, err := user.GetListEvent(&models.User{XID: xid})
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		bs, err := json.ConfigFastest.Marshal(listEvent)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
@@ -633,7 +664,7 @@ func HandleRemoveTfa(user user.User) http.HandlerFunc {
 	}
 }
 
-func HandleByPassTfa(user user.User) http.HandlerFunc {
+func HandleByPassTfa(ctx context.Context, user user.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		xid := r.Header.Get("xid")
 
@@ -647,7 +678,14 @@ func HandleByPassTfa(user user.User) http.HandlerFunc {
 
 		currentUser.XID = xid
 
-		byPass, err := user.ByPassTfa(currentUser)
+		err := helper.GetReqHeader(&ctx, r)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		byPass, err := user.ByPassTfa(ctx, currentUser)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))

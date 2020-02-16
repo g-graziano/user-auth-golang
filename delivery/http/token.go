@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/g-graziano/userland/helper"
@@ -9,7 +10,7 @@ import (
 	json "github.com/json-iterator/go"
 )
 
-func HandleVerifyTfa(tkn token.Token) http.HandlerFunc {
+func HandleVerifyTfa(ctx context.Context, tkn token.Token) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		xid := r.Header.Get("xid")
 
@@ -23,7 +24,14 @@ func HandleVerifyTfa(tkn token.Token) http.HandlerFunc {
 
 		otpRequest.XID = xid
 
-		verified, err := tkn.VerifyTfa(otpRequest)
+		err := helper.GetReqHeader(&ctx, r)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			return
+		}
+
+		verified, err := tkn.VerifyTfa(ctx, otpRequest)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.Message(false, "Invalid Request"))

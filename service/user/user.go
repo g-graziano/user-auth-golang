@@ -2,6 +2,7 @@ package user
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -27,12 +28,18 @@ import (
 
 type User interface {
 	GetAPIClientID(client *models.ClientID) (*models.ClientID, error)
-	Login(user *models.Login) (*models.AccessToken, error)
+	Login(ctx context.Context, user *models.Login) (*models.AccessToken, error)
+	ByPassTfa(ctx context.Context, code *models.OTPRequest) (*models.AccessToken, error)
+	GetNewAccessToken(ctx context.Context, token *models.AccessTokenRequest) (*models.AccessToken, error)
+	RefreshToken(ctx context.Context, user *models.User) (*models.AccessToken, error)
+
 	Logout(user *models.User) error
 	Register(user *models.RegisterRequest) error
+
 	VerifyEmail(user *models.User) error
 	SendEmailValidation(user *models.User) error
 	ResendEmailValidation(user *models.User) error
+
 	ForgotPassword(user *models.User) error
 	ResetPassword(resetPass *models.ResetPass) error
 
@@ -46,14 +53,13 @@ type User interface {
 	UpdateUserPassword(user *models.ChangePassword) error
 	RequestChangePassword(user *models.User) error
 	DeleteUser(user *models.User) error
-	RefreshToken(user *models.User) (*models.AccessToken, error)
-	GetNewAccessToken(token *models.AccessTokenRequest) (*models.AccessToken, error)
 	DeleteOtherSession(token *models.AccessTokenRequest) error
 	DeleteCurrentSession(token *models.UserToken) error
 	RemoveTfa(user *models.User) error
 	CheckJWTIsActive(token *models.UserToken) error
 	ActivateTfa(secret *models.ActivateTfaRequest) (*models.BackupCodesResponse, error)
-	ByPassTfa(code *models.OTPRequest) (*models.AccessToken, error)
+
+	GetListEvent(user *models.User) (*models.ListEventResponse, error)
 	GetListSession(session *models.ListSessionRequest) (*models.ListSessionResponse, error)
 }
 
@@ -67,6 +73,40 @@ func New(pg postgres.Postgres, rd redis.Redis) User {
 		postgres: pg,
 		redis:    rd,
 	}
+}
+
+func (u *user) GetListEvent(user *models.User) (*models.ListEventResponse, error) {
+	currentUser, err := u.postgres.GetUser(user)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(currentUser) < 1 {
+		return nil, errors.New("Invalid auth token")
+	}
+
+	sessionResult, err := u.postgres.GetEvent(&models.User{ID: currentUser[0].ID})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var listEvent models.ListEventResponse
+	var listEventData models.ListEventResponseData
+
+	for _, v := range sessionResult {
+		listEventData.IP = v.IPAddress
+		listEventData.Event = v.Event
+		listEventData.UA = v.UA
+		listEventData.CreatedAt = v.CreatedAt
+		listEventData.Client.ID = v.UserID
+		listEventData.Client.Name = v.ClientName
+
+		listEvent.Data = append(listEvent.Data, listEventData)
+	}
+
+	return &listEvent, nil
 }
 
 func (u *user) GetListSession(session *models.ListSessionRequest) (*models.ListSessionResponse, error) {
@@ -205,7 +245,7 @@ func (u *user) GetAPIClientID(client *models.ClientID) (*models.ClientID, error)
 	return result[0], nil
 }
 
-func (u *user) Login(user *models.Login) (*models.AccessToken, error) {
+func (u *user) Login(ctx context.Context, user *models.Login) (*models.AccessToken, error) {
 	var loginUser []*models.User
 
 	user.Email = strings.ToLower(user.Email)
@@ -226,13 +266,19 @@ func (u *user) Login(user *models.Login) (*models.AccessToken, error) {
 
 	var token models.TokenClaim
 
+	clientID, err := strconv.ParseUint(fmt.Sprintf("%v", ctx.Value(helper.StringToInterface("client-id"))), 0, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	token.ClientID = clientID
+	token.XID = loginUser[0].XID
+
 	if loginUser[0].TFA {
-		token.XID = loginUser[0].XID
 		token.AccessType = "tfa"
 		token.ExpiredAt = time.Minute * 5
 	} else {
 		token.Email = loginUser[0].Email
-		token.XID = loginUser[0].XID
 		token.AccessType = "login"
 		token.ExpiredAt = time.Hour * 24
 	}
@@ -245,14 +291,20 @@ func (u *user) Login(user *models.Login) (*models.AccessToken, error) {
 		ExpiredAt: time.Now().Add(token.ExpiredAt).String(),
 	}
 
-	err = u.postgres.CreateToken(&models.UserToken{
+	err = u.postgres.CreateToken(ctx, &models.UserToken{
 		Token:        tokenString,
 		UserID:       loginUser[0].ID,
 		TokenType:    "Bearer",
 		RefreshToken: helper.NullStringFunc("", false),
-		IPAddress:    helper.NullStringFunc(user.IPAddress, true),
-		ClientID:     user.ClientID,
+		// IPAddress:    helper.NullStringFunc(ipAddress, true),
+		// ClientID:     clientID,
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = u.postgres.CreateEvent(ctx, "login", loginUser[0].ID)
 
 	if err != nil {
 		return nil, err
@@ -396,7 +448,7 @@ func (u *user) ForgotPassword(user *models.User) error {
 	return nil
 }
 
-func (u *user) RefreshToken(user *models.User) (*models.AccessToken, error) {
+func (u *user) RefreshToken(ctx context.Context, user *models.User) (*models.AccessToken, error) {
 	var refreshUser, err = u.postgres.GetActiveUser(user)
 
 	if err != nil {
@@ -407,16 +459,22 @@ func (u *user) RefreshToken(user *models.User) (*models.AccessToken, error) {
 		return nil, errors.New("user not found")
 	}
 
+	clientID, err := strconv.ParseUint(fmt.Sprintf("%v", ctx.Value(helper.StringToInterface("client-id"))), 0, 64)
+	if err != nil {
+		return nil, err
+	}
+
 	var tokenClaim = &models.TokenClaim{
 		XID:        refreshUser[0].XID,
 		Email:      refreshUser[0].Email,
 		AccessType: "refreshtoken",
 		ExpiredAt:  time.Hour * 8760,
+		ClientID:   clientID,
 	}
 
 	tokenString := tokenClaim.TokenGenerator()
 
-	err = u.postgres.CreateToken(&models.UserToken{Token: tokenString, UserID: refreshUser[0].ID, TokenType: "Bearer"})
+	err = u.postgres.CreateToken(ctx, &models.UserToken{Token: tokenString, UserID: refreshUser[0].ID, TokenType: "Bearer"})
 
 	accessToken := &models.AccessToken{
 		Value:     tokenString,
@@ -427,7 +485,7 @@ func (u *user) RefreshToken(user *models.User) (*models.AccessToken, error) {
 	return accessToken, nil
 }
 
-func (u *user) GetNewAccessToken(token *models.AccessTokenRequest) (*models.AccessToken, error) {
+func (u *user) GetNewAccessToken(ctx context.Context, token *models.AccessTokenRequest) (*models.AccessToken, error) {
 	var refreshUser, err = u.postgres.GetActiveUser(&models.User{XID: token.XID})
 
 	if err != nil {
@@ -438,11 +496,17 @@ func (u *user) GetNewAccessToken(token *models.AccessTokenRequest) (*models.Acce
 		return nil, errors.New("user not found")
 	}
 
+	clientID, err := strconv.ParseUint(fmt.Sprintf("%v", ctx.Value(helper.StringToInterface("client-id"))), 0, 64)
+	if err != nil {
+		return nil, err
+	}
+
 	var tokenClaim = &models.TokenClaim{
 		XID:        refreshUser[0].XID,
 		Email:      refreshUser[0].Email,
 		AccessType: "login",
 		ExpiredAt:  time.Hour * 24,
+		ClientID:   clientID,
 	}
 
 	tokenString := tokenClaim.TokenGenerator()
@@ -456,7 +520,7 @@ func (u *user) GetNewAccessToken(token *models.AccessTokenRequest) (*models.Acce
 		return nil, err
 	}
 
-	err = u.postgres.CreateToken(&models.UserToken{
+	err = u.postgres.CreateToken(ctx, &models.UserToken{
 		Token:        tokenString,
 		UserID:       refreshUser[0].ID,
 		TokenType:    "Bearer",
@@ -476,7 +540,7 @@ func (u *user) GetNewAccessToken(token *models.AccessTokenRequest) (*models.Acce
 	return accessToken, nil
 }
 
-func (u *user) ByPassTfa(codes *models.OTPRequest) (*models.AccessToken, error) {
+func (u *user) ByPassTfa(ctx context.Context, codes *models.OTPRequest) (*models.AccessToken, error) {
 	var currentUser, err = u.postgres.GetActiveUser(&models.User{XID: codes.XID})
 
 	if err != nil {
@@ -500,16 +564,22 @@ func (u *user) ByPassTfa(codes *models.OTPRequest) (*models.AccessToken, error) 
 		return nil, errors.New("code not valid")
 	}
 
+	clientID, err := strconv.ParseUint(fmt.Sprintf("%v", ctx.Value(helper.StringToInterface("client-id"))), 0, 64)
+	if err != nil {
+		return nil, err
+	}
+
 	var tokenClaim = &models.TokenClaim{
 		XID:        currentUser[0].XID,
 		Email:      currentUser[0].Email,
 		AccessType: "login",
 		ExpiredAt:  time.Hour * 24,
+		ClientID:   clientID,
 	}
 
 	tokenString := tokenClaim.TokenGenerator()
 
-	err = u.postgres.CreateToken(&models.UserToken{
+	err = u.postgres.CreateToken(ctx, &models.UserToken{
 		Token:     tokenString,
 		UserID:    currentUser[0].ID,
 		TokenType: "Bearer",
