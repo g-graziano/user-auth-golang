@@ -102,12 +102,8 @@ func (u *user) GetListEvent(user *models.User) (*models.ListEventResponse, error
 	var listEvent models.ListEventResponse
 	var listEventData models.ListEventResponseData
 
-	// totalPage := (eventResult[0].TotalEvent + limit - 1) / limit
-
 	listEvent.Pagination.Page = 0
-	listEvent.Pagination.PerPage = 10
-	// listEvent.Pagination.Next = totalPage - (limit * offset)
-	// listEvent.Pagination.Previous = totalPage - (limit * offset)
+	listEvent.Pagination.PerPage = limit
 
 	for _, v := range eventResult {
 		listEventData.IP = v.IPAddress
@@ -156,8 +152,6 @@ func (u *user) GetListSession(session *models.ListSessionRequest) (*models.ListS
 
 		listSessionData.Client.ID = v.UserID
 		listSessionData.Client.Name = v.ClientName
-
-		fmt.Printf("%+v", v.IPAddress)
 
 		listSession.Data = append(listSession.Data, listSessionData)
 	}
