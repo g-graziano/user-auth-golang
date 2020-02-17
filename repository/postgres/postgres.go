@@ -41,7 +41,7 @@ type Postgres interface {
 
 	//Event
 	CreateEvent(ctx context.Context, event string, userID uint64) error
-	GetEvent(user *models.User) ([]*models.Event, error)
+	GetEvent(user *models.User, limit int, offset int) ([]*models.Event, error)
 }
 
 func New(conn ...string) Postgres {
@@ -646,7 +646,7 @@ func (p *postgres) CreateEvent(ctx context.Context, event string, userID uint64)
 	return nil
 }
 
-func (p *postgres) GetEvent(user *models.User) ([]*models.Event, error) {
+func (p *postgres) GetEvent(user *models.User, limit int, offset int) ([]*models.Event, error) {
 	var results []*models.Event
 
 	if user.ID != 0 {
@@ -658,11 +658,14 @@ func (p *postgres) GetEvent(user *models.User) ([]*models.Event, error) {
 					u.client_id,
 					c.name,
 					u.ip_address,
-					u.created_at
+					u.created_at,
+					count(u.*) OVER() AS total
 				FROM EVENTS as u
 				LEFT JOIN CLIENT_IDS AS c ON u.client_id = c.id
 				WHERE 
-					u.user_id = $1`, user.ID)
+					u.user_id = $1
+				LIMIT $2
+				OFFSET $3`, user.ID, limit, offset)
 
 		if err != nil {
 			return nil, err
@@ -680,6 +683,7 @@ func (p *postgres) GetEvent(user *models.User) ([]*models.Event, error) {
 				&event.ClientName,
 				&event.IPAddress,
 				&event.CreatedAt,
+				&event.TotalEvent,
 			); err != nil {
 				return nil, err
 			}

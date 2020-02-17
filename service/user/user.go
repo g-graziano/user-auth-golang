@@ -86,7 +86,14 @@ func (u *user) GetListEvent(user *models.User) (*models.ListEventResponse, error
 		return nil, errors.New("Invalid auth token")
 	}
 
-	sessionResult, err := u.postgres.GetEvent(&models.User{ID: currentUser[0].ID})
+	limit := 3
+	offset := 0
+
+	eventResult, err := u.postgres.GetEvent(
+		&models.User{ID: currentUser[0].ID},
+		limit,
+		offset,
+	)
 
 	if err != nil {
 		return nil, err
@@ -95,7 +102,14 @@ func (u *user) GetListEvent(user *models.User) (*models.ListEventResponse, error
 	var listEvent models.ListEventResponse
 	var listEventData models.ListEventResponseData
 
-	for _, v := range sessionResult {
+	// totalPage := (eventResult[0].TotalEvent + limit - 1) / limit
+
+	listEvent.Pagination.Page = 0
+	listEvent.Pagination.PerPage = 10
+	// listEvent.Pagination.Next = totalPage - (limit * offset)
+	// listEvent.Pagination.Previous = totalPage - (limit * offset)
+
+	for _, v := range eventResult {
 		listEventData.IP = v.IPAddress
 		listEventData.Event = v.Event
 		listEventData.UA = v.UA
@@ -296,8 +310,6 @@ func (u *user) Login(ctx context.Context, user *models.Login) (*models.AccessTok
 		UserID:       loginUser[0].ID,
 		TokenType:    "Bearer",
 		RefreshToken: helper.NullStringFunc("", false),
-		// IPAddress:    helper.NullStringFunc(ipAddress, true),
-		// ClientID:     clientID,
 	})
 
 	if err != nil {
@@ -449,13 +461,13 @@ func (u *user) ForgotPassword(user *models.User) error {
 }
 
 func (u *user) RefreshToken(ctx context.Context, user *models.User) (*models.AccessToken, error) {
-	var refreshUser, err = u.postgres.GetActiveUser(user)
+	var currentUser, err = u.postgres.GetActiveUser(user)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if len(refreshUser) < 1 {
+	if len(currentUser) < 1 {
 		return nil, errors.New("user not found")
 	}
 
@@ -465,8 +477,8 @@ func (u *user) RefreshToken(ctx context.Context, user *models.User) (*models.Acc
 	}
 
 	var tokenClaim = &models.TokenClaim{
-		XID:        refreshUser[0].XID,
-		Email:      refreshUser[0].Email,
+		XID:        currentUser[0].XID,
+		Email:      currentUser[0].Email,
 		AccessType: "refreshtoken",
 		ExpiredAt:  time.Hour * 8760,
 		ClientID:   clientID,
@@ -474,7 +486,17 @@ func (u *user) RefreshToken(ctx context.Context, user *models.User) (*models.Acc
 
 	tokenString := tokenClaim.TokenGenerator()
 
-	err = u.postgres.CreateToken(ctx, &models.UserToken{Token: tokenString, UserID: refreshUser[0].ID, TokenType: "Bearer"})
+	err = u.postgres.CreateToken(ctx, &models.UserToken{Token: tokenString, UserID: currentUser[0].ID, TokenType: "Bearer"})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = u.postgres.CreateEvent(ctx, "refresh token", currentUser[0].ID)
+
+	if err != nil {
+		return nil, err
+	}
 
 	accessToken := &models.AccessToken{
 		Value:     tokenString,
@@ -486,13 +508,13 @@ func (u *user) RefreshToken(ctx context.Context, user *models.User) (*models.Acc
 }
 
 func (u *user) GetNewAccessToken(ctx context.Context, token *models.AccessTokenRequest) (*models.AccessToken, error) {
-	var refreshUser, err = u.postgres.GetActiveUser(&models.User{XID: token.XID})
+	var currentUser, err = u.postgres.GetActiveUser(&models.User{XID: token.XID})
 
 	if err != nil {
 		return nil, err
 	}
 
-	if len(refreshUser) < 1 {
+	if len(currentUser) < 1 {
 		return nil, errors.New("user not found")
 	}
 
@@ -502,8 +524,8 @@ func (u *user) GetNewAccessToken(ctx context.Context, token *models.AccessTokenR
 	}
 
 	var tokenClaim = &models.TokenClaim{
-		XID:        refreshUser[0].XID,
-		Email:      refreshUser[0].Email,
+		XID:        currentUser[0].XID,
+		Email:      currentUser[0].Email,
 		AccessType: "login",
 		ExpiredAt:  time.Hour * 24,
 		ClientID:   clientID,
@@ -522,10 +544,16 @@ func (u *user) GetNewAccessToken(ctx context.Context, token *models.AccessTokenR
 
 	err = u.postgres.CreateToken(ctx, &models.UserToken{
 		Token:        tokenString,
-		UserID:       refreshUser[0].ID,
+		UserID:       currentUser[0].ID,
 		TokenType:    "Bearer",
 		RefreshToken: helper.NullStringFunc(token.RefreshToken, true),
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = u.postgres.CreateEvent(ctx, "new access token", currentUser[0].ID)
 
 	if err != nil {
 		return nil, err
@@ -584,6 +612,12 @@ func (u *user) ByPassTfa(ctx context.Context, codes *models.OTPRequest) (*models
 		UserID:    currentUser[0].ID,
 		TokenType: "Bearer",
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = u.postgres.CreateEvent(ctx, "bypass tfa", currentUser[0].ID)
 
 	if err != nil {
 		return nil, err

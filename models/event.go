@@ -13,14 +13,15 @@ type Event struct {
 	UA         string            `gorm:"null" json:"ua"`
 	IPAddress  helper.NullString `gorm:"null" json:"ip_address"`
 	ClientID   uint64            `gorm:"null" json:"client_id"`
-	ClientName string            `gorm:"-" json:"client_name"`
 	CreatedAt  time.Time         `gorm:"not null" json:"created_at"`
 	UpdatedAt  time.Time         `gorm:"not null" json:"-"`
+	ClientName string            `gorm:"-" json:"client_name"`
+	TotalEvent int               `gorm:"-" json:"total_event"`
 }
 
 type ListEventResponse struct {
 	Data       []ListEventResponseData `json:"data"`
-	Pagination PaginationResponse      `json:"pagination"`
+	Pagination Pagination              `json:"pagination"`
 }
 
 type ListEventResponseData struct {
@@ -31,7 +32,7 @@ type ListEventResponseData struct {
 	CreatedAt time.Time         `json:"created_at"`
 }
 
-type PaginationResponse struct {
+type Pagination struct {
 	Page     int `json:"page"`
 	PerPage  int `json:"per_page"`
 	Next     int `json:"next"`

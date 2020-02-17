@@ -642,7 +642,7 @@ func HandleRemoveTfa(user user.User) http.HandlerFunc {
 
 		var currentUser *models.User
 		if err := json.NewDecoder(r.Body).Decode(&currentUser); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusUnauthorized)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
 			return
 		}
@@ -671,7 +671,7 @@ func HandleByPassTfa(ctx context.Context, user user.User) http.HandlerFunc {
 		var currentUser *models.OTPRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&currentUser); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusUnauthorized)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
 			return
 		}
@@ -680,7 +680,7 @@ func HandleByPassTfa(ctx context.Context, user user.User) http.HandlerFunc {
 
 		err := helper.GetReqHeader(&ctx, r)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusUnauthorized)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
 			return
 		}
