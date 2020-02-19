@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/g-graziano/userland/repository/postgres"
-	"github.com/g-graziano/userland/repository/redis"
-	"github.com/g-graziano/userland/service/token"
-	"github.com/g-graziano/userland/service/user"
+	"github.com/g-graziano/user-auth-golang/repository/postgres"
+	"github.com/g-graziano/user-auth-golang/repository/redis"
+	"github.com/g-graziano/user-auth-golang/service/token"
+	"github.com/g-graziano/user-auth-golang/service/user"
 )
 
 type Dependency struct {

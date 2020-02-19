@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/g-graziano/userland/models"
-	"github.com/g-graziano/userland/repository/postgres"
-	"github.com/g-graziano/userland/repository/redis"
+	"github.com/g-graziano/user-auth-golang/models"
+	"github.com/g-graziano/user-auth-golang/repository/postgres"
+	"github.com/g-graziano/user-auth-golang/repository/redis"
 )
 
 type Token interface {

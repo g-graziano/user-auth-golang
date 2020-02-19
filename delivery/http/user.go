@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/g-graziano/userland/helper"
-	"github.com/g-graziano/userland/models"
-	"github.com/g-graziano/userland/service/user"
+	"github.com/g-graziano/user-auth-golang/helper"
+	"github.com/g-graziano/user-auth-golang/models"
+	"github.com/g-graziano/user-auth-golang/service/user"
 	"github.com/go-chi/chi"
 	json "github.com/json-iterator/go"
 )

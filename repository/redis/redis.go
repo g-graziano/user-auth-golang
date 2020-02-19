@@ -3,7 +3,7 @@ package redis
 import (
 	"fmt"
 
-	"github.com/g-graziano/userland/models"
+	"github.com/g-graziano/user-auth-golang/models"
 	rds "github.com/go-redis/redis"
 )
 

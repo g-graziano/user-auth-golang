@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/g-graziano/userland/helper"
+	"github.com/g-graziano/user-auth-golang/helper"
 	"github.com/go-playground/validator"
 )
 

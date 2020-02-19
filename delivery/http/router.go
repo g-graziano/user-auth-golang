@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/g-graziano/userland/middleware"
-	"github.com/g-graziano/userland/service/token"
-	"github.com/g-graziano/userland/service/user"
+	"github.com/g-graziano/user-auth-golang/middleware"
+	"github.com/g-graziano/user-auth-golang/service/token"
+	"github.com/g-graziano/user-auth-golang/service/user"
 	"github.com/go-chi/chi"
 	mdlw "github.com/go-chi/chi/middleware"
 )

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/g-graziano/userland/helper"
-	"github.com/g-graziano/userland/models"
+	"github.com/g-graziano/user-auth-golang/helper"
+	"github.com/g-graziano/user-auth-golang/models"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )

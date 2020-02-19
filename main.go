@@ -1,5 +1,5 @@
 package main
 
-import "github.com/g-graziano/userland/app"
+import "github.com/g-graziano/user-auth-golang/app"
 
 func main() { app.Run() }

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/g-graziano/userland/helper"
+	"github.com/g-graziano/user-auth-golang/helper"
 )
 
 type UserToken struct {

@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/g-graziano/userland/helper"
+	"github.com/g-graziano/user-auth-golang/helper"
 )
 
 type Event struct {

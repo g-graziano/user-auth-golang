@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	_http "github.com/g-graziano/userland/delivery/http"
+	_http "github.com/g-graziano/user-auth-golang/delivery/http"
 	"github.com/joho/godotenv"
 )
 

@@ -3,7 +3,7 @@ package sendgrid
 import (
 	"os"
 
-	"github.com/g-graziano/userland/models"
+	"github.com/g-graziano/user-auth-golang/models"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
