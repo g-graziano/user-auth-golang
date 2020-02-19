@@ -1,4 +1,4 @@
-module github.com/g-graziano/userland
+module github.com/g-graziano/user-auth-golang
 
 go 1.13
 
