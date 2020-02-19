@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/g-graziano/user-auth-golang/helper"
@@ -20,6 +21,7 @@ func HandleUserRegister(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -27,6 +29,7 @@ func HandleUserRegister(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -46,6 +49,7 @@ func HandleEmailVerification(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -63,6 +67,7 @@ func HandleRequestEmailVerification(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -72,6 +77,7 @@ func HandleRequestEmailVerification(user user.User) http.HandlerFunc {
 			if err != nil {
 				w.WriteHeader(http.StatusAccepted)
 				helper.Response(w, helper.ErrorMessage(0, err.Error()))
+				log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 				return
 			}
@@ -91,6 +97,7 @@ func HandleLogin(ctx context.Context, user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&loginUser); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -99,6 +106,7 @@ func HandleLogin(ctx context.Context, user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -106,6 +114,7 @@ func HandleLogin(ctx context.Context, user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -113,6 +122,7 @@ func HandleLogin(ctx context.Context, user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -128,6 +138,7 @@ func HandleLogout(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -144,6 +155,7 @@ func HandleForgotPassword(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&forgotUser); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -151,6 +163,7 @@ func HandleForgotPassword(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -169,6 +182,7 @@ func HandleRequestChangePassword(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&changeUser); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -178,6 +192,7 @@ func HandleRequestChangePassword(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -194,6 +209,7 @@ func HandleResetPassword(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&resetPass); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -201,6 +217,7 @@ func HandleResetPassword(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -219,6 +236,7 @@ func HandleGetUserProfile(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -226,6 +244,7 @@ func HandleGetUserProfile(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -243,6 +262,7 @@ func HandleGetTfaStatus(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -250,6 +270,7 @@ func HandleGetTfaStatus(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -267,6 +288,7 @@ func HandleGetRefreshToken(ctx context.Context, user user.User) http.HandlerFunc
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -274,6 +296,7 @@ func HandleGetRefreshToken(ctx context.Context, user user.User) http.HandlerFunc
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -281,6 +304,7 @@ func HandleGetRefreshToken(ctx context.Context, user user.User) http.HandlerFunc
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -299,6 +323,7 @@ func HandleGetNewAccessToken(ctx context.Context, user user.User) http.HandlerFu
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -306,6 +331,7 @@ func HandleGetNewAccessToken(ctx context.Context, user user.User) http.HandlerFu
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -313,6 +339,7 @@ func HandleGetNewAccessToken(ctx context.Context, user user.User) http.HandlerFu
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -331,6 +358,7 @@ func HandleDeleteOtherSession(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -349,6 +377,7 @@ func HandleEndCurrentSession(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -367,6 +396,7 @@ func HandleGetUserEmail(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -374,6 +404,7 @@ func HandleGetUserEmail(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -391,6 +422,7 @@ func HandleGetListEvent(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -398,6 +430,7 @@ func HandleGetListEvent(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -415,6 +448,7 @@ func HandleUpdateUserProfile(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -424,6 +458,7 @@ func HandleUpdateUserProfile(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -443,6 +478,7 @@ func HandleActivateTfa(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&secret); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -452,6 +488,7 @@ func HandleActivateTfa(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -460,6 +497,7 @@ func HandleActivateTfa(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -477,6 +515,7 @@ func HandleUpdatePassword(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -486,6 +525,7 @@ func HandleUpdatePassword(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -509,6 +549,7 @@ func HandleTfaEnroll(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -517,6 +558,7 @@ func HandleTfaEnroll(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -533,6 +575,7 @@ func HandleSetProfilePicture(user user.User) http.HandlerFunc {
 		if err := r.ParseMultipartForm(200000); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -544,6 +587,7 @@ func HandleSetProfilePicture(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 		defer f.Close()
@@ -558,6 +602,7 @@ func HandleSetProfilePicture(user user.User) http.HandlerFunc {
 		if _, err := io.Copy(content, fopen); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -578,6 +623,7 @@ func HandleSetProfilePicture(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -597,6 +643,7 @@ func HandleDeleteProfilePicture(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -616,6 +663,7 @@ func HandleDeleteUser(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&delete); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -625,6 +673,7 @@ func HandleDeleteUser(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -644,6 +693,7 @@ func HandleRemoveTfa(user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&currentUser); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -653,6 +703,7 @@ func HandleRemoveTfa(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 
 			return
 		}
@@ -673,6 +724,7 @@ func HandleByPassTfa(ctx context.Context, user user.User) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&currentUser); err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -682,6 +734,7 @@ func HandleByPassTfa(ctx context.Context, user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -689,6 +742,7 @@ func HandleByPassTfa(ctx context.Context, user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
@@ -715,6 +769,7 @@ func HandleGetListSession(user user.User) http.HandlerFunc {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			helper.Response(w, helper.ErrorMessage(0, err.Error()))
+			log.Printf("error %q: %v", r.RequestURI, err.Error())
 			return
 		}
 
