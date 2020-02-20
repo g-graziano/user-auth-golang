@@ -16,7 +16,7 @@ func GenerateNumericCode(min int, max int) string {
 }
 
 func GenerateQRCodeToBase64(value string) (string, error) {
-	png, err := qrcode.Encode("value", qrcode.Medium, 256)
+	png, err := qrcode.Encode(value, qrcode.Medium, 256)
 
 	if err != nil {
 		return "", err
